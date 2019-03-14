@@ -1,5 +1,6 @@
 package com.xiudongxu.xRpc.connection;
 
+import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.xiudongxu.xRpc.netty.client.NettyClient;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
@@ -35,20 +36,39 @@ public class ConnectManage {
     private Map<SocketAddress, Channel> channelNodes = new ConcurrentHashMap<>();
 
     public Channel chooseChannel() {
-        if (channels.size()>0) {
+        if (channels.size() > 0) {
             int size = channels.size();
             int index = (roundRobin.getAndAdd(1) + size) % size;
             return channels.get(index);
-        }else{
+        } else {
             return null;
         }
     }
 
+    public synchronized void updateConnectServerNacos(List<Instance> instanceList) {
 
-    public synchronized void updateConnectServer(List<String> addressList){
-        if(addressList.size() == 0 || addressList == null){
+        HashSet<SocketAddress> newAllServerNodeSet = new HashSet<>();
+        for (int i = 0; i < instanceList.size(); i++) {
+            String host = instanceList.get(i).getIp();
+            int port = instanceList.get(i).getPort();
+            SocketAddress remotePeer = new InetSocketAddress(host, port);
+            newAllServerNodeSet.add(remotePeer);
+        }
+
+        for (SocketAddress socketAddress : newAllServerNodeSet) {
+            Channel channel = channelNodes.get(socketAddress);
+            if (channel != null && channel.isOpen()) {
+                LOGGER.info("当前节点已经存在，无需重新建立连接,地址:{} ", socketAddress);
+            } else {
+                connectServerNode(socketAddress);
+            }
+        }
+    }
+
+    public synchronized void updateConnectServer(List<String> addressList) {
+        if (addressList.size() == 0 || addressList == null) {
             LOGGER.error("没有可用的服务器节点，全部服务节点关闭！");
-            for(final Channel channel : channels){
+            for (final Channel channel : channels) {
                 SocketAddress remotePeer = channel.remoteAddress();
                 Channel handler_node = channelNodes.get(remotePeer);
                 handler_node.close();
@@ -58,25 +78,25 @@ public class ConnectManage {
             return;
         }
 
-        HashSet<SocketAddress> newAllServerNodeSet = new HashSet<>();
-        for (int i = 0; i < addressList.size(); i++) {
-            String[] array = addressList.get(i).split(":");
-            if(array.length == 2){
-                String host = array[0];
-                int port = Integer.parseInt(array[1]);
-                SocketAddress remotePeer = new InetSocketAddress(host, port);
-                newAllServerNodeSet.add(remotePeer);
-            }
-        }
-
-        for(SocketAddress socketAddress : newAllServerNodeSet){
-            Channel channel = channelNodes.get(socketAddress);
-            if(channel != null && channel.isOpen()){
-                LOGGER.info("当前节点已经存在，无需重新建立连接,地址:{} ", socketAddress);
-            }else{
-                connectServerNode(socketAddress);
-            }
-        }
+//        HashSet<SocketAddress> newAllServerNodeSet = new HashSet<>();
+//        for (int i = 0; i < addressList.size(); i++) {
+//            String[] array = addressList.get(i).split(":");
+//            if(array.length == 2){
+//                String host = array[0];
+//                int port = Integer.parseInt(array[1]);
+//                SocketAddress remotePeer = new InetSocketAddress(host, port);
+//                newAllServerNodeSet.add(remotePeer);
+//            }
+//        }
+//
+//        for(SocketAddress socketAddress : newAllServerNodeSet){
+//            Channel channel = channelNodes.get(socketAddress);
+//            if(channel != null && channel.isOpen()){
+//                LOGGER.info("当前节点已经存在，无需重新建立连接,地址:{} ", socketAddress);
+//            }else{
+//                connectServerNode(socketAddress);
+//            }
+//        }
     }
 
     private void connectServerNode(SocketAddress address) {
@@ -94,10 +114,11 @@ public class ConnectManage {
         channels.add(channel);
         channelNodes.put(address, channel);
     }
-     public void removeChannel(Channel channel){
+
+    public void removeChannel(Channel channel) {
         LOGGER.info("从连接管理器中移除失效channel:{}", channel.remoteAddress());
-         SocketAddress socketAddress = channel.remoteAddress();
-         channelNodes.remove(socketAddress);
-         channels.remove(channel);
-     }
+        SocketAddress socketAddress = channel.remoteAddress();
+        channelNodes.remove(socketAddress);
+        channels.remove(channel);
+    }
 }
