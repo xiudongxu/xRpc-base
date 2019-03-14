@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -45,7 +44,6 @@ public class ServiceDiscovery {
         } catch (NacosException e) {
 
         }
-
     }
 
 }

@@ -47,6 +47,18 @@ public class ConnectManage {
 
     public synchronized void updateConnectServerNacos(List<Instance> instanceList) {
 
+        if (instanceList.size() == 0 || instanceList == null) {
+            LOGGER.error("没有可用的服务器节点，全部服务节点关闭！");
+            for (final Channel channel : channels) {
+                SocketAddress remotePeer = channel.remoteAddress();
+                Channel handler_node = channelNodes.get(remotePeer);
+                handler_node.close();
+            }
+            channels.clear();
+            channelNodes.clear();
+            return;
+        }
+
         HashSet<SocketAddress> newAllServerNodeSet = new HashSet<>();
         for (int i = 0; i < instanceList.size(); i++) {
             String host = instanceList.get(i).getIp();
@@ -66,17 +78,17 @@ public class ConnectManage {
     }
 
     public synchronized void updateConnectServer(List<String> addressList) {
-        if (addressList.size() == 0 || addressList == null) {
-            LOGGER.error("没有可用的服务器节点，全部服务节点关闭！");
-            for (final Channel channel : channels) {
-                SocketAddress remotePeer = channel.remoteAddress();
-                Channel handler_node = channelNodes.get(remotePeer);
-                handler_node.close();
-            }
-            channels.clear();
-            channelNodes.clear();
-            return;
-        }
+//        if (addressList.size() == 0 || addressList == null) {
+//            LOGGER.error("没有可用的服务器节点，全部服务节点关闭！");
+//            for (final Channel channel : channels) {
+//                SocketAddress remotePeer = channel.remoteAddress();
+//                Channel handler_node = channelNodes.get(remotePeer);
+//                handler_node.close();
+//            }
+//            channels.clear();
+//            channelNodes.clear();
+//            return;
+//        }
 
 //        HashSet<SocketAddress> newAllServerNodeSet = new HashSet<>();
 //        for (int i = 0; i < addressList.size(); i++) {
