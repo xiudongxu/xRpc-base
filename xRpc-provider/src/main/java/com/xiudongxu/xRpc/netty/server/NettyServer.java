@@ -100,7 +100,9 @@ public class NettyServer implements ApplicationContextAware,InitializingBean {
                 String[] array = serviceAddress.split(":");
                 String host = array[0];
                 int port = Integer.parseInt(array[1]);
+                //netty监听服务的地址
                 ChannelFuture cf = bootstrap.bind(host, port).sync();
+                //把netty监听服务的地址注册上去
                 serviceRegistry.register(serviceAddress);
                 cf.channel().closeFuture().sync();
             } catch (InterruptedException e) {
